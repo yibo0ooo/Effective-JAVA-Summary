@@ -99,12 +99,20 @@ _If you are the publisher and think this repository should not be public, just w
 # 2. CREATING AND DESTROYING OBJECTS
 
 ## 1. Use STATIC FACTORY METHODS instead of constructors
+static factory method returns an instance of the class.
+
 
 **_ADVANTAGES_**
 
-- Unlike constructors, they have names
+- Unlike constructors, they have names 
+	- Easier for clients to read and use.
+	- Constructors(differs only in signature not names), static factory methods(can differ more flexiblely)
+	- Use Case: Where a class seems to require multiple constructors with the same signature, replace the constructors with static factory methods and carefully chosen names to highlight their differences.
 - Unlike constructors, they are not required to create a new object each time they're invoked
-- Unlike constructors, they can return an object of any subtype of their return type
+	- Basically, static factory method is still a method to return something.(Different from constructors)
+	- It just returns the instance: If the instance is already there, it just return that instance. If the instance doesn't exist, it will return the newly created instance. 
+- Unlike constructors, they can rmeturn an object of any subtype of their return type.
+	- This gives you great flexibility in choosing the class of the returned object.
 - They reduce verbosity of creating parameterized type instances
 
 **_DISADVANTAGES_**
@@ -117,6 +125,17 @@ _If you are the publisher and think this repository should not be public, just w
 	public static Boolean valueOf(boolean b){
 		return b ? Boolean.TRUE :  Boolean.FALSE;
 	}
+```
+```java
+	public class ShapeFactory {
+		public static Shape getShape(String shapeType) {
+			if (shapeType.equalsIgnoreCase("circle")) {
+				return new Circle(); // Return a Circle instance
+			} else if (shapeType.equalsIgnoreCase("rectangle")) {
+				return new Rectangle(); // Return a Rectangle instance
+			}
+			throw new IllegalArgumentException("Unknown shape type");
+		}
 ```
 
 ## 2. Use BUILDERS when faced with many constructors
