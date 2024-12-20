@@ -100,6 +100,7 @@ _If you are the publisher and think this repository should not be public, just w
 
 ## 1. Use STATIC FACTORY METHODS instead of constructors
 static factory method returns an instance of the class.
+Why static? "Static" means that it belongs to the class itself, not to any specific instance of the class.
 
 
 **_ADVANTAGES_**
@@ -111,7 +112,7 @@ static factory method returns an instance of the class.
 - Unlike constructors, they are not required to create a new object each time they're invoked
 	- Basically, static factory method is still a method to return something.(Different from constructors)
 	- It just returns the instance: If the instance is already there, it just return that instance. If the instance doesn't exist, it will return the newly created instance. 
-- Unlike constructors, they can rmeturn an object of any subtype of their return type.
+- Unlike constructors, they can return an object of any subtype of their return type.
 	- This gives you great flexibility in choosing the class of the returned object.
 - They reduce verbosity of creating parameterized type instances
 
