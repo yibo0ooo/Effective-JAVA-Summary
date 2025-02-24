@@ -288,6 +288,104 @@ In summary, the Builder pattern is a good choice when designing classes whose co
 
 ## 3. Enforce the singleton property with a private constructor or an enum type
 
+Singleton = A class can only be instantiated once in a program. Making a class a singleton can make it difficult to test its clients because it's impossible to substitue a mock implementation for a singleton unless it implements an interface that serves as its type.
+
+When making a class a singleton, the only one instance is usually accessed by a static method or a global variable. It makes the client code tightly couples with the detail implementation of that singleton. For example: 
+
+```java
+
+public class MySingleton {
+    // When we load the class, the instance is created.
+    private static final MySingleton instance = new MySingleton();
+
+    private MySingleton() {}
+
+    public static MySingleton getInstance() {
+        return instance;
+    }
+
+    public void doSomething() {
+        System.out.println("Operations xxx");
+    }
+}
+```
+
+```java
+public class Client {
+    public void perform() {
+        // Directly calls MySingleton's static method to use the instance
+		// And the methods, detail implementation under singleton class is revealed.
+        MySingleton.getInstance().doSomething();
+    }
+}
+```
+
+The problem is, when we want to test our Client class, we can't replace MySingleton with a Mock object. And normally with a mock object, we can easily isolate and control the testing environment and don't influence the real object.
+
+```java
+IService realService = new RealService();
+Client client = new Client(realService);
+client.perform();  // The real situation
+```
+```java
+IService mockService = new MockService();
+Client client = new Client(mockService);
+client.perform();  // We do this in the test, we use a mock object to replace realService
+
+```
+To replace and control the instance in test, we can make the singleton implements an interface(as an abstract layer), and the client program relies on the interface rather than the singleton, instead. In this way, we can mock that interface object and do the unit tests. 
+
+```java
+
+public interface IService {
+    void doSomething();
+}
+
+public class MySingleton implements IService {
+    private static final MySingleton instance = new MySingleton();
+
+    private MySingleton() {}
+
+    public static MySingleton getInstance() {
+        return instance;
+    }
+
+    @Override
+    public void doSomething() {
+        System.out.println("Do something");
+    }
+}
+
+public class Client {
+    private IService service;
+
+    // 通过构造函数注入依赖
+    public Client(IService service) {
+        this.service = service;
+    }
+
+    public void perform() {
+        service.doSomething();
+    }
+}
+
+public class MockService implements IService {
+    @Override
+    public void doSomething() {
+        System.out.println("模拟操作");
+    }
+}
+
+public class ClientTest {
+    public static void main(String[] args) {
+        IService mockService = new MockService();
+        Client client = new Client(mockService);
+        client.perform();  // 输出 "模拟操作"
+    }
+}
+
+```
+
 There are different ways to create singletons:
 
 **_Public final field_**
@@ -302,7 +400,12 @@ There are different ways to create singletons:
 	}
 ```
 
-One problem is that a privileged client can invoke the private constructor reflectively. Against this attack the constructor needs to be modified to send an exception if it is asked to create a second instance.
+- Advantages
+	- The main one is that the API makes it clear that the class is a singleton: the public static field is final, so it will always contain the same object reference.
+	- The second one is that it's simpler.
+
+- Disadvantage
+	- One problem is that a privileged client can invoke the private constructor reflectively. Against this attack the constructor needs to be modified to send an exception if it is asked to create a second instance.
 
 **_Singleton with static factory_**
 
@@ -316,12 +419,19 @@ One problem is that a privileged client can invoke the private constructor refle
 		public void singASong(){...}
 	}
 ```
+All calls to Elvis.getInstance return the same object reference, and no other instances will be ever created.
+
+- Advantages
+	- It gives you the flexibility to change your mind about whether the class is a singleton without changing its API. You can always change the return value of the static factory method.(From a object reference to a separate new instance, let's say)
+	- You can write a generic singleton factory if your application requires it.
+	- A method reference can be used as a supplier, for example Elvis::instance is a Supplier<Elvis>.
+	- Unless one of these is relevant, we would prefer the public field approach one.
 
 In this approach it can be change to a non singleton class without changing the class API.
 
 **_Serialize a singleton_**
 
-It is needed a _readResolve_ method and declare all the fields _transient_ in addition to the _implements Serializable_ to maintain the singleton guarantee.
+It is needed a _readResolve_ method and declare all the fields _transient_ in addition to the _implements Serializable_ to maintain the singleton guarantee. Otherwise, each time a serialized instance is deserialized, a new instance will be created, leading to spurious Elvis sightings.
 
 ```java
 
@@ -342,7 +452,7 @@ It is needed a _readResolve_ method and declare all the fields _transient_ in ad
 	}
 ```
 
-Equivalent to the public field, more concise, provides serialization machinery for free, and guarantee against multiple instantiation, even for reflection attacks and sophisticated serialization. _It is the best way to implement a singleton_.
+Equivalent to the public field, more concise, provides serialization machinery for free, and guarantee against multiple instantiation, even for reflection attacks and sophisticated serialization. _It is the best way to implement a singleton_. Note that you can't use this approach if your singleton must extend a superclass other than Enum(though you can declare an enum to implement interfaces).
 
 ## 4. Enforce noninstantiability with a private constructor
 
