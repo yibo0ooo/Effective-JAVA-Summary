@@ -139,11 +139,75 @@ Why static? "Static" means that it belongs to the class itself, not to any speci
 		}
 ```
 
+```java
+	public final class MyClass {
+		private int value;
+
+		// 私有构造函数，外部无法直接实例化或继承
+		private MyClass(int value) {
+			this.value = value;
+		}
+
+		// 静态工厂方法
+		public static MyClass of(int value) {
+			return new MyClass(value);
+		}
+
+		public int getValue() {
+			return value;
+		}
+	}
+
+	
+	// 在这个例子中，由于 MyClass 没有公开的构造函数，也不能被继承，所以如果想扩展其功能，只能通过在新类中组合 MyClass 的实例来实现。
+	// 这样做既保持了 MyClass 的封装性，也能让你灵活地扩展或调整行为。
+	public class MyExtendedClass {
+		// 通过组合持有 MyClass 的实例
+		private MyClass myClass;
+
+		public MyExtendedClass(int value) {
+			// 通过静态工厂方法创建实例
+			myClass = MyClass.of(value);
+		}
+
+		// 新增扩展方法，比如返回 value 的两倍
+		public int getDoubleValue() {
+			return myClass.getValue() * 2;
+		}
+	}
+```
+
+**_Summary_**
+
+In summary, static factory methods and public constructors both have their uses, and it pays to understand their relative merits. Often static factories are preferable, so avoid the reflex to provide public constructors without first considering static factories.
+
+
 ## 2. Use BUILDERS when faced with many constructors
 
 Is a good choice when designing classes whose constructors or static factories would have more than a handful of parameters.
 
-Builder pattern simulates named optional parameters as in ADA and Python.
+**_Advantages_**
+
+- Builder pattern simulates named optional parameters as found in Scala and Python.
+	- Validity checks are done in the builder's constructor and methods. Do the checks on object fields after copying parameters from the builder. If a check fails, throw an IAE whose detail message can tell which parameters are invalid. (See the code below to check calories)
+- The Builder pattern is well suited to class hierarchies. Abstract classes have abstract builders. Concrete classes have concrete builders. Concrete class extends abstract class, and its concrete builder extends the abstract class's builder. 
+	- E.g. Builder extends Pizza.Builder<Builder>. Here Pizza.Builder is a generic type with a recursive type parameter. This, along with the abstract self method, allows method chaining to work properly in subclasses, without the need for casts.
+- Builders can have multile varags parameters because each parameter is specified in its own method.
+- The Builder pattern is quite flexible. (used repeatedly, parameters can be tweaked between different cases, fill some fields automatically upon object creation)
+
+```java
+
+	NyPizza pizza = new NyPizza.Builder(SMALL).addTopping(SAUSAGE).addTopping(ONION).build();
+
+```
+**_Disadvantages_**
+
+- In order to create an object, you must first create its builder. (Of course! No need to mention it.) The cost is unnoticeable, but in some performance-critical situations. emmmm....
+- The Builder pattern is more verbose than the telescoping constructor pattern, so it should be used only if there are enough parameters(may be four or more) to make it worthwhile. (Again, even if not needed now, you may want to add more parameters in the future)
+	- Keep in mind that it's often better to start with a builder in the first place. Because if you start out with constructors or static factories and switch to a builder when needed, the obsolete constructors or static factories will stick out  like a sore thumb.
+
+
+Wanna see alternative solutions? [Check this](#102-use-builders-when-faced-with-many-constructors)
 
 ```java
 
@@ -172,6 +236,9 @@ Builder pattern simulates named optional parameters as in ADA and Python.
 			}
 
 			public Builder calories (int val) {
+				if (calories < 0) {
+					throw new IllegalArgumentException("Calories cannot be less than zero");
+				}
 				calories = val;
 				return this;
 			}
@@ -214,6 +281,10 @@ Builder pattern simulates named optional parameters as in ADA and Python.
 	NutritionFacts cocaCola = new NutritionFacts.Builder(240,8).calories(100).sodium(35).carbohydrate(27).build();
 
 ```
+
+**_Summary_**
+
+In summary, the Builder pattern is a good choice when designing classes whose constructors or static factories would have more than a handful of parameters, especially if many of the parameters are optional or of identical type. Client code is much easier to read and write, and builders are much safer than JavaBeans.
 
 ## 3. Enforce the singleton property with a private constructor or an enum type
 
@@ -3301,3 +3372,25 @@ Limitations, not compatible with:
 
 - classes that are extendable by their clients ([Item 17](#17-design-and-document-for-inheritance-or-else-prohibit-it))
 - some classes whose object graphs contain circularities
+
+
+## 102. Use BUILDERS when faced with many constructors
+
+Static factories and constructors share a limitation: they do not scale well to large number of optional parameters. E.g. We have a class that needs multiple but optional parameters like total fat, saturated fat, trans fat, sodium, etc. Here we have three choices:
+
+- Telescoping constructor pattern - permutation and repetition a lot. Does not scale well
+	- If you don't need one parameter, you're forced to pass a value for them anyway.
+	- It works, but it's hard to write client code when there are many parameters, and harder still to read it.
+
+```java
+
+NutritionFacts cocaCola = new NutritionFacts(240, 8, 100, 0, 35, 27);
+
+```
+
+- JavaBeans pattern: You call a parameterless constructor to create the object and then call setter methods to set each required parameter and each optional parameter of interest. (It has none of the disadvantages of the telescoping constructor pattern, but it has its own Cons)
+	- A JavaBean may be in an inconsistent state partway through its construction.
+	- The JavaBean pattern precludes the possibility of making a class immutable.(Item 17) And we need to add efforts to ensure thread safety. 
+	- We can avoid this potential problem by manually "freezing" the object when its construction is complete, and we are not allowed to use it until frozen. But it is still rarely used in practice. It can also cause errors at runtime because the programmer may not call the freeze method to construct that object before really using it.
+
+- Builder pattern: The right way to solve this problem. See the main content.
