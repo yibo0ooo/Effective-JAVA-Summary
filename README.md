@@ -456,13 +456,17 @@ Equivalent to the public field, more concise, provides serialization machinery f
 
 ## 4. Enforce noninstantiability with a private constructor
 
-For classes that group static methods and static fields.
+There are some classes that makes no sense if we instantiate them. E.G. classes that group static methods and static fields, some utility classes, etc.
 
 Used for example to:
 
 - Group related methods on primitive values or arrays.
 - Group static methods, including factory methods, for objects that implement a particular interface.
 - Group methods on a final class instead of extending the class.
+
+Since the compiler provides a public, parameterless default constructor, it will not help if you want to enforce noninstantiability by not explicitly writing one constructor. The right way to enforce noninstantiability is to use a private constructor, and throw AssertionError within it would be better, in case of calls from within the class.
+
+In addition, attempting to enforce noninstantiability by making a class abstract does not work. Because the class can be subclassed and the subclass instantiated. Furthermore, it misleads the user into thinking the class was designed for inheritance.
 
 **_Include a private constructor_**
 
@@ -477,6 +481,8 @@ Used for example to:
 		...
 	}
 ```
+
+As a side effect, if we enforce noninstantiability like this, it also prevents the class from being subclassed. Because all constructors must invoke a superclass constructor, explicitly or implictly, and a subclass would have no accessible superclass constructor to invoke.
 
 ## 5. Avoid creating objects
 
